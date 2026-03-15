@@ -37,6 +37,7 @@
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
+      align-items: center;
     }
     button {
       border: none;
@@ -50,6 +51,37 @@
       border: 1px solid #d1d5db;
     }
     .btn:hover { background: #f9fafb; }
+    .btn-primary {
+      background: #2563eb;
+      color: white;
+      border: 1px solid #2563eb;
+    }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-danger {
+      background: #111827;
+      color: white;
+      border: 1px solid #111827;
+    }
+    .btn-danger:hover { background: #000; }
+    .user-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: white;
+      border: 1px solid #d1d5db;
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-size: 14px;
+      color: #374151;
+      max-width: 320px;
+    }
+    .user-pill img {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #e5e7eb;
+    }
     .home-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(280px, 1fr));
@@ -260,14 +292,54 @@
       justify-content: flex-end;
       gap: 10px;
     }
-    .btn-primary {
-      background: #2563eb;
-      color: white;
+    .auth-panel {
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      padding: 32px;
+      text-align: center;
     }
-    .btn-primary:hover { background: #1d4ed8; }
+    .auth-panel h2 {
+      margin-top: 0;
+      font-size: 30px;
+    }
+    .auth-panel p {
+      color: #6b7280;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .status-bar {
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      border-radius: 14px;
+      font-size: 14px;
+      display: none;
+    }
+    .status-bar.show { display: block; }
+    .status-info {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+    .status-error {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+    .loading-wrap {
+      text-align: center;
+      padding: 72px 20px;
+      color: #6b7280;
+    }
+    .disabled-overlay {
+      opacity: 0.5;
+      pointer-events: none;
+      user-select: none;
+    }
     @media (max-width: 900px) {
       .home-grid { grid-template-columns: 1fr; }
       .big-card h2 { font-size: 28px; }
+      .user-pill { max-width: 100%; }
     }
   </style>
 </head>
@@ -279,42 +351,67 @@
         <p>주간 합격/불합격 기준으로 습관을 관리하는 보드</p>
       </div>
       <div class="top-actions">
+        <div class="user-pill" id="userPill" style="display:none;">
+          <img id="userPhoto" alt="" />
+          <span id="userName">로그인 안 됨</span>
+        </div>
         <button class="btn" id="archiveBtn">아카이브 습관 보기</button>
         <button class="btn" id="homeBtn">홈</button>
+        <button class="btn btn-primary" id="googleLoginBtn">Google 로그인</button>
+        <button class="btn btn-danger" id="logoutBtn" style="display:none;">로그아웃</button>
       </div>
     </div>
 
-    <div id="screen-home">
-      <div class="home-grid">
-        <button class="big-card create-card" id="createHabitBtn">
-          <h2>습관 생성하기</h2>
-          <p>카테고리와 구체적인 습관을 순서대로 입력합니다.</p>
-        </button>
-        <button class="big-card manage-card" id="manageHabitBtn">
-          <h2>습관 관리하기</h2>
-          <p>엑셀처럼 주간 단위로 성공/실패를 기록합니다.</p>
-        </button>
+    <div id="statusBar" class="status-bar status-info"></div>
+
+    <div id="loadingScreen" class="loading-wrap">
+      <p>데이터를 불러오는 중...</p>
+    </div>
+
+    <div id="authScreen" style="display:none;">
+      <div class="auth-panel">
+        <h2>Google 로그인 후 사용하세요</h2>
+        <p>
+          습관 데이터가 구글 계정 기준으로 저장됩니다.<br />
+          휴대폰과 PC에서 같은 계정으로 로그인하면 같은 데이터를 이어서 사용할 수 있어요.
+        </p>
+        <button class="btn btn-primary" id="googleLoginBtn2">Google로 시작하기</button>
       </div>
     </div>
 
-    <div id="screen-manage" style="display:none;">
-      <div class="panel">
-        <div class="week-nav">
-          <h2>주간 습관 관리</h2>
-          <div class="week-controls">
-            <button class="icon-btn" id="prevWeekBtn">←</button>
-            <div class="week-label" id="weekLabel"></div>
-            <button class="icon-btn" id="nextWeekBtn">→</button>
-          </div>
+    <div id="appShell" style="display:none;">
+      <div id="screen-home">
+        <div class="home-grid">
+          <button class="big-card create-card" id="createHabitBtn">
+            <h2>습관 생성하기</h2>
+            <p>카테고리와 구체적인 습관을 순서대로 입력합니다.</p>
+          </button>
+          <button class="big-card manage-card" id="manageHabitBtn">
+            <h2>습관 관리하기</h2>
+            <p>엑셀처럼 주간 단위로 성공/실패를 기록합니다.</p>
+          </button>
         </div>
-        <div id="manageContent"></div>
       </div>
-    </div>
 
-    <div id="screen-archive" style="display:none;">
-      <div class="panel">
-        <h2 style="margin-top:0; font-size:26px;">아카이브 습관</h2>
-        <div id="archiveContent"></div>
+      <div id="screen-manage" style="display:none;">
+        <div class="panel">
+          <div class="week-nav">
+            <h2>주간 습관 관리</h2>
+            <div class="week-controls">
+              <button class="icon-btn" id="prevWeekBtn">←</button>
+              <div class="week-label" id="weekLabel"></div>
+              <button class="icon-btn" id="nextWeekBtn">→</button>
+            </div>
+          </div>
+          <div id="manageContent"></div>
+        </div>
+      </div>
+
+      <div id="screen-archive" style="display:none;">
+        <div class="panel">
+          <h2 style="margin-top:0; font-size:26px;">아카이브 습관</h2>
+          <div id="archiveContent"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -341,36 +438,183 @@
     </div>
   </div>
 
-  <script>
-    const STORAGE_KEY = 'habit-app-html-v1';
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+    import {
+      getAuth,
+      GoogleAuthProvider,
+      onAuthStateChanged,
+      signInWithPopup,
+      signInWithRedirect,
+      getRedirectResult,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      setDoc,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDhMTJUjOuukWxdcIhhf39z2iQnXnrDlnU",
+      authDomain: "habit-app-dbcf0.firebaseapp.com",
+      projectId: "habit-app-dbcf0",
+      storageBucket: "habit-app-dbcf0.firebasestorage.app",
+      messagingSenderId: "936208798483",
+      appId: "1:936208798483:web:695852b09848c5eb0440e6"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+
+    const LOCAL_STORAGE_KEY = "habit-app-html-v1";
+    const CLOUD_DOC_ID = "main";
 
     const state = {
-      screen: 'home',
+      screen: "home",
       viewWeekStart: startOfWeek(new Date()),
-      tempCategory: '',
-      data: loadState()
+      tempCategory: "",
+      currentUser: null,
+      cloudReady: false,
+      isSaving: false,
+      saveTimer: null,
+      data: defaultState()
     };
 
     function defaultState() {
       return { habits: [], archivedHabits: [] };
     }
 
-    function loadState() {
+    function getUserDocRef(uid) {
+      return doc(db, "habitAppUsers", uid, "data", CLOUD_DOC_ID);
+    }
+
+    function showStatus(message, type = "info") {
+      const el = document.getElementById("statusBar");
+      el.textContent = message;
+      el.className = "status-bar show " + (type === "error" ? "status-error" : "status-info");
+    }
+
+    function hideStatus() {
+      const el = document.getElementById("statusBar");
+      el.className = "status-bar";
+      el.textContent = "";
+    }
+
+    function setLoading(loading) {
+      document.getElementById("loadingScreen").style.display = loading ? "" : "none";
+    }
+
+    function showAuthScreen(show) {
+      document.getElementById("authScreen").style.display = show ? "" : "none";
+    }
+
+    function showAppShell(show) {
+      document.getElementById("appShell").style.display = show ? "" : "none";
+    }
+
+    function updateUserUI(user) {
+      const userPill = document.getElementById("userPill");
+      const userPhoto = document.getElementById("userPhoto");
+      const userName = document.getElementById("userName");
+      const loginBtn = document.getElementById("googleLoginBtn");
+      const loginBtn2 = document.getElementById("googleLoginBtn2");
+      const logoutBtn = document.getElementById("logoutBtn");
+
+      if (user) {
+        userPill.style.display = "inline-flex";
+        userPhoto.style.display = user.photoURL ? "" : "none";
+        if (user.photoURL) userPhoto.src = user.photoURL;
+        userName.textContent = user.displayName || user.email || "Google 사용자";
+        loginBtn.style.display = "none";
+        logoutBtn.style.display = "";
+      } else {
+        userPill.style.display = "none";
+        userPhoto.removeAttribute("src");
+        userName.textContent = "로그인 안 됨";
+        loginBtn.style.display = "";
+        logoutBtn.style.display = "none";
+      }
+
+      if (loginBtn2) {
+        loginBtn2.style.display = user ? "none" : "";
+      }
+    }
+
+    function loadLocalState() {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
         if (!raw) return defaultState();
         const parsed = JSON.parse(raw);
         return {
-          habits: parsed.habits || [],
-          archivedHabits: parsed.archivedHabits || []
+          habits: Array.isArray(parsed.habits) ? parsed.habits : [],
+          archivedHabits: Array.isArray(parsed.archivedHabits) ? parsed.archivedHabits : []
         };
       } catch (e) {
         return defaultState();
       }
     }
 
-    function saveState() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+    function saveLocalBackup() {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state.data));
+    }
+
+    async function loadCloudStateForUser(user) {
+      const ref = getUserDocRef(user.uid);
+      const snap = await getDoc(ref);
+
+      if (snap.exists()) {
+        const data = snap.data() || {};
+        state.data = {
+          habits: Array.isArray(data.habits) ? data.habits : [],
+          archivedHabits: Array.isArray(data.archivedHabits) ? data.archivedHabits : []
+        };
+        saveLocalBackup();
+        return;
+      }
+
+      const local = loadLocalState();
+      state.data = local;
+      await saveCloudState(true);
+    }
+
+    async function saveCloudState(force = false) {
+      if (!state.currentUser || !state.cloudReady) return;
+      if (state.isSaving && !force) return;
+
+      state.isSaving = true;
+      try {
+        const ref = getUserDocRef(state.currentUser.uid);
+        await setDoc(ref, {
+          habits: state.data.habits,
+          archivedHabits: state.data.archivedHabits,
+          updatedAt: serverTimestamp(),
+          user: {
+            uid: state.currentUser.uid,
+            email: state.currentUser.email || "",
+            displayName: state.currentUser.displayName || ""
+          }
+        }, { merge: true });
+        saveLocalBackup();
+      } finally {
+        state.isSaving = false;
+      }
+    }
+
+    function scheduleSave() {
+      saveLocalBackup();
+      if (!state.currentUser || !state.cloudReady) return;
+      clearTimeout(state.saveTimer);
+      state.saveTimer = setTimeout(() => {
+        saveCloudState().catch(err => {
+          console.error(err);
+          showStatus("클라우드 저장 중 오류가 발생했습니다.", "error");
+        });
+      }, 300);
     }
 
     function startOfWeek(date) {
@@ -393,7 +637,11 @@
     }
 
     function ymd(date) {
-      return new Date(date).toISOString().slice(0, 10);
+      const d = new Date(date);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
     }
 
     function weekKeyFromDate(date) {
@@ -405,7 +653,7 @@
       const firstWeekStart = startOfWeek(firstThursday);
       const diffDays = Math.round((temp - firstWeekStart) / 86400000);
       const weekNo = 1 + Math.floor(diffDays / 7);
-      return temp.getFullYear() + '-W' + String(weekNo).padStart(2, '0');
+      return temp.getFullYear() + "-W" + String(weekNo).padStart(2, "0");
     }
 
     function createEmptyWeekMap(weekStart) {
@@ -422,6 +670,7 @@
       const currentWeekStart = startOfWeek(today);
       const isPastWeek = weekStart < currentWeekStart;
       const weeks = JSON.parse(JSON.stringify(habit.weeks || {}));
+
       if (!weeks[wk]) weeks[wk] = { statuses: createEmptyWeekMap(weekStart) };
       if (!weeks[wk].statuses) weeks[wk].statuses = createEmptyWeekMap(weekStart);
 
@@ -432,7 +681,7 @@
 
       if (isPastWeek) {
         Object.keys(weeks[wk].statuses).forEach(key => {
-          if (weeks[wk].statuses[key] === null) weeks[wk].statuses[key] = 'fail';
+          if (weeks[wk].statuses[key] === null) weeks[wk].statuses[key] = "fail";
         });
       }
 
@@ -443,18 +692,18 @@
       const wk = weekKeyFromDate(weekStart);
       const statuses = (habit.weeks && habit.weeks[wk] && habit.weeks[wk].statuses) || createEmptyWeekMap(weekStart);
       const values = Object.values(statuses);
-      const successCount = values.filter(v => v === 'success').length;
-      const failCount = values.filter(v => v === 'fail').length;
+      const successCount = values.filter(v => v === "success").length;
+      const failCount = values.filter(v => v === "fail").length;
       const pendingCount = values.filter(v => v === null).length;
-      const isMinus = (habit.category || '').trim() === '마이너스습관';
+      const isMinus = (habit.category || "").trim() === "마이너스습관";
 
       if (pendingCount > 0 && weekStart.getTime() === startOfWeek(today).getTime()) {
-        return { label: '진행중', successCount, failCount, passed: null };
+        return { label: "진행중", successCount, failCount, passed: null };
       }
 
       const passed = isMinus ? failCount === 0 : successCount >= 5;
       return {
-        label: passed ? '합격' : '불합격',
+        label: passed ? "합격" : "불합격",
         successCount,
         failCount,
         passed
@@ -493,13 +742,21 @@
         archiveInfo: shouldArchive ? {
           archivedAt: new Date().toISOString(),
           learnedPeriod: streakStart && streakEnd
-            ? `${streakStart.getFullYear()}.${streakStart.getMonth()+1}.${streakStart.getDate()} ~ ${streakEnd.getFullYear()}.${streakEnd.getMonth()+1}.${streakEnd.getDate()}`
-            : '',
+            ? `${streakStart.getFullYear()}.${streakStart.getMonth() + 1}.${streakStart.getDate()} ~ ${streakEnd.getFullYear()}.${streakEnd.getMonth() + 1}.${streakEnd.getDate()}`
+            : "",
           learnedDays: streakStart && streakEnd
             ? Math.floor((streakEnd - streakStart) / 86400000) + 1
             : totalSuccessDays
         } : null
       };
+    }
+
+    function dedupeArchived(arr) {
+      const map = new Map();
+      arr.forEach(item => {
+        if (!map.has(item.id)) map.set(item.id, item);
+      });
+      return Array.from(map.values());
     }
 
     function finalizePastWeeksAndArchive() {
@@ -529,46 +786,47 @@
 
       state.data.habits = active;
       state.data.archivedHabits = dedupeArchived(archived);
-      saveState();
-    }
-
-    function dedupeArchived(arr) {
-      const map = new Map();
-      arr.forEach(item => {
-        if (!map.has(item.id)) map.set(item.id, item);
-      });
-      return Array.from(map.values());
+      scheduleSave();
     }
 
     function formatWeekRange(weekStart) {
       const end = addDays(weekStart, 6);
-      return `${weekStart.getFullYear()}년 ${weekStart.getMonth()+1}월 ${weekStart.getDate()}일 ~ ${end.getMonth()+1}월 ${end.getDate()}일`;
+      return `${weekStart.getFullYear()}년 ${weekStart.getMonth() + 1}월 ${weekStart.getDate()}일 ~ ${end.getMonth() + 1}월 ${end.getDate()}일`;
     }
 
     function formatDateLabel(date) {
-      return `${date.getMonth()+1}월 ${date.getDate()}일`;
+      return `${date.getMonth() + 1}월 ${date.getDate()}일`;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
     }
 
     function setScreen(screen) {
       state.screen = screen;
-      document.getElementById('screen-home').style.display = screen === 'home' ? '' : 'none';
-      document.getElementById('screen-manage').style.display = screen === 'manage' ? '' : 'none';
-      document.getElementById('screen-archive').style.display = screen === 'archive' ? '' : 'none';
+      document.getElementById("screen-home").style.display = screen === "home" ? "" : "none";
+      document.getElementById("screen-manage").style.display = screen === "manage" ? "" : "none";
+      document.getElementById("screen-archive").style.display = screen === "archive" ? "" : "none";
       render();
     }
 
     function openModal(id) {
-      document.getElementById(id).classList.add('show');
+      document.getElementById(id).classList.add("show");
     }
 
     function closeModal(id) {
-      document.getElementById(id).classList.remove('show');
+      document.getElementById(id).classList.remove("show");
     }
 
     function renderManage() {
-      const manageContent = document.getElementById('manageContent');
-      const weekLabel = document.getElementById('weekLabel');
-      const nextWeekBtn = document.getElementById('nextWeekBtn');
+      const manageContent = document.getElementById("manageContent");
+      const weekLabel = document.getElementById("weekLabel");
+      const nextWeekBtn = document.getElementById("nextWeekBtn");
       const currentWeekStart = startOfWeek(new Date());
       const viewWeekStart = state.viewWeekStart;
       const isCurrentWeek = viewWeekStart.getTime() === currentWeekStart.getTime();
@@ -586,7 +844,7 @@
       let html = '<div class="table-wrap"><table class="habit-table"><thead><tr>' +
         '<th>카테고리</th>' +
         '<th>습관</th>' +
-        visibleDays.map(day => `<th>${formatDateLabel(day)}</th>`).join('') +
+        visibleDays.map(day => `<th>${formatDateLabel(day)}</th>`).join("") +
         '<th>총평</th>' +
         '</tr></thead><tbody>';
 
@@ -598,29 +856,29 @@
         const stats = computeHabitStats(ensured);
         const isPastWeek = viewWeekStart < currentWeekStart;
 
-        html += '<tr>';
+        html += "<tr>";
         html += `<td class="cat-cell">${escapeHtml(habit.category)}</td>`;
         html += `<td class="habit-cell">${escapeHtml(habit.detail)}</td>`;
 
         visibleDays.forEach(day => {
           const dateStr = ymd(day);
           const value = statuses[dateStr];
-          const cls = value === 'success' ? 'day-success' : value === 'fail' ? 'day-fail' : 'day-empty';
-          const text = value === 'success' ? '성공' : value === 'fail' ? '실패' : '미입력';
-          const disabled = isPastWeek ? 'disabled' : '';
+          const cls = value === "success" ? "day-success" : value === "fail" ? "day-fail" : "day-empty";
+          const text = value === "success" ? "성공" : value === "fail" ? "실패" : "미입력";
+          const disabled = isPastWeek ? "disabled" : "";
           html += `<td><button class="day-btn ${cls}" data-habit-id="${habit.id}" data-date="${dateStr}" ${disabled}>${text}</button></td>`;
         });
 
-        const badgeClass = evalResult.label === '합격' ? 'pass' : evalResult.label === '불합격' ? 'fail' : 'progress';
+        const badgeClass = evalResult.label === "합격" ? "pass" : evalResult.label === "불합격" ? "fail" : "progress";
         html += `<td class="summary-cell"><span class="badge ${badgeClass}">${evalResult.label}</span><div class="small-text">연속 ${stats.consecutivePasses}주</div></td>`;
-        html += '</tr>';
+        html += "</tr>";
       });
 
-      html += '</tbody></table></div>';
+      html += "</tbody></table></div>";
       manageContent.innerHTML = html;
 
-      manageContent.querySelectorAll('.day-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+      manageContent.querySelectorAll(".day-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
           const habitId = btn.dataset.habitId;
           const dateStr = btn.dataset.date;
           toggleDayStatus(habitId, dateStr);
@@ -629,7 +887,7 @@
     }
 
     function renderArchive() {
-      const el = document.getElementById('archiveContent');
+      const el = document.getElementById("archiveContent");
       if (state.data.archivedHabits.length === 0) {
         el.innerHTML = '<div class="empty-state">아직 아카이브된 습관이 없습니다.</div>';
         return;
@@ -644,18 +902,19 @@
               <span class="small-text">아카이브 완료</span>
             </div>
             <h3>${escapeHtml(habit.detail)}</h3>
-            <p><strong>익힌 기간:</strong> ${escapeHtml(habit.archiveInfo?.learnedPeriod || '기록 없음')}</p>
+            <p><strong>익힌 기간:</strong> ${escapeHtml(habit.archiveInfo?.learnedPeriod || "기록 없음")}</p>
             <p><strong>행동으로 익힌 일수:</strong> ${habit.archiveInfo?.learnedDays || 0}일</p>
           </div>
         `;
       });
-      html += '</div>';
+      html += "</div>";
       el.innerHTML = html;
     }
 
     function render() {
-      if (state.screen === 'manage') renderManage();
-      if (state.screen === 'archive') renderArchive();
+      if (!state.currentUser) return;
+      if (state.screen === "manage") renderManage();
+      if (state.screen === "archive") renderArchive();
     }
 
     function toggleDayStatus(habitId, dateStr) {
@@ -672,7 +931,7 @@
           habit = ensureWeekStatuses(habit, state.viewWeekStart, today);
           const wk = weekKeyFromDate(state.viewWeekStart);
           const current = habit.weeks[wk].statuses[dateStr];
-          const next = current === 'success' ? 'fail' : current === 'fail' ? null : 'success';
+          const next = current === "success" ? "fail" : current === "fail" ? null : "success";
           habit.weeks[wk].statuses[dateStr] = next;
         }
 
@@ -686,47 +945,125 @@
 
       state.data.habits = active;
       state.data.archivedHabits = dedupeArchived(archived);
-      saveState();
+      scheduleSave();
       render();
     }
 
     function createHabit(category, detail) {
       state.data.habits.push({
-        id: crypto.randomUUID ? crypto.randomUUID() : 'habit-' + Date.now() + '-' + Math.random().toString(16).slice(2),
+        id: crypto.randomUUID ? crypto.randomUUID() : "habit-" + Date.now() + "-" + Math.random().toString(16).slice(2),
         category,
         detail,
         createdAt: new Date().toISOString(),
         weeks: {}
       });
-      saveState();
+      scheduleSave();
       finalizePastWeeksAndArchive();
-      setScreen('manage');
+      setScreen("manage");
     }
 
-    function escapeHtml(str) {
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+    async function handleGoogleLogin() {
+      hideStatus();
+      try {
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        if (isMobile) {
+          await signInWithRedirect(auth, provider);
+          return;
+        }
+        await signInWithPopup(auth, provider);
+      } catch (err) {
+        console.error(err);
+        if (err && (err.code === "auth/popup-blocked" || err.code === "auth/cancelled-popup-request")) {
+          try {
+            await signInWithRedirect(auth, provider);
+            return;
+          } catch (redirectErr) {
+            console.error(redirectErr);
+            showStatus("Google 로그인에 실패했습니다. Firebase Authorized domain 설정도 확인해 보세요.", "error");
+          }
+        } else {
+          showStatus("Google 로그인에 실패했습니다. Firebase Authorized domain 설정도 확인해 보세요.", "error");
+        }
+      }
     }
 
-    document.getElementById('createHabitBtn').addEventListener('click', () => {
-      document.getElementById('categoryInput').value = '';
-      document.getElementById('habitInput').value = '';
-      state.tempCategory = '';
-      openModal('categoryModal');
+    async function handleLogout() {
+      try {
+        await signOut(auth);
+        state.currentUser = null;
+        state.cloudReady = false;
+        state.data = defaultState();
+        updateUserUI(null);
+        showAppShell(false);
+        showAuthScreen(true);
+        setScreen("home");
+        hideStatus();
+      } catch (err) {
+        console.error(err);
+        showStatus("로그아웃 중 오류가 발생했습니다.", "error");
+      }
+    }
+
+    async function initAuthFlow() {
+      setLoading(true);
+      showAuthScreen(false);
+      showAppShell(false);
+
+      try {
+        await getRedirectResult(auth).catch(() => null);
+      } catch (err) {
+        console.error(err);
+      }
+
+      onAuthStateChanged(auth, async (user) => {
+        setLoading(true);
+        updateUserUI(user);
+
+        if (!user) {
+          state.currentUser = null;
+          state.cloudReady = false;
+          state.data = defaultState();
+          showAppShell(false);
+          showAuthScreen(true);
+          setLoading(false);
+          return;
+        }
+
+        try {
+          state.currentUser = user;
+          await loadCloudStateForUser(user);
+          finalizePastWeeksAndArchive();
+          state.cloudReady = true;
+          showAuthScreen(false);
+          showAppShell(true);
+          setScreen(state.screen || "home");
+          setLoading(false);
+          hideStatus();
+        } catch (err) {
+          console.error(err);
+          showStatus("데이터를 불러오는 중 오류가 발생했습니다.", "error");
+          setLoading(false);
+        }
+      });
+    }
+
+    document.getElementById("createHabitBtn").addEventListener("click", () => {
+      document.getElementById("categoryInput").value = "";
+      document.getElementById("habitInput").value = "";
+      state.tempCategory = "";
+      openModal("categoryModal");
     });
 
-    document.getElementById('manageHabitBtn').addEventListener('click', () => setScreen('manage'));
-    document.getElementById('homeBtn').addEventListener('click', () => setScreen('home'));
-    document.getElementById('archiveBtn').addEventListener('click', () => setScreen('archive'));
-    document.getElementById('prevWeekBtn').addEventListener('click', () => {
+    document.getElementById("manageHabitBtn").addEventListener("click", () => setScreen("manage"));
+    document.getElementById("homeBtn").addEventListener("click", () => setScreen("home"));
+    document.getElementById("archiveBtn").addEventListener("click", () => setScreen("archive"));
+
+    document.getElementById("prevWeekBtn").addEventListener("click", () => {
       state.viewWeekStart = addWeeks(state.viewWeekStart, -1);
       render();
     });
-    document.getElementById('nextWeekBtn').addEventListener('click', () => {
+
+    document.getElementById("nextWeekBtn").addEventListener("click", () => {
       const currentWeekStart = startOfWeek(new Date());
       const next = addWeeks(state.viewWeekStart, 1);
       if (next <= currentWeekStart) {
@@ -735,70 +1072,44 @@
       }
     });
 
-    document.getElementById('cancelCategoryBtn').addEventListener('click', () => closeModal('categoryModal'));
-    document.getElementById('cancelHabitBtn').addEventListener('click', () => closeModal('habitModal'));
+    document.getElementById("cancelCategoryBtn").addEventListener("click", () => closeModal("categoryModal"));
+    document.getElementById("cancelHabitBtn").addEventListener("click", () => closeModal("habitModal"));
 
-    document.getElementById('nextCategoryBtn').addEventListener('click', () => {
-      const value = document.getElementById('categoryInput').value.trim();
+    document.getElementById("nextCategoryBtn").addEventListener("click", () => {
+      const value = document.getElementById("categoryInput").value.trim();
       if (!value) {
-        alert('카테고리를 입력해 주세요.');
+        alert("카테고리를 입력해 주세요.");
         return;
       }
       state.tempCategory = value;
-      closeModal('categoryModal');
-      openModal('habitModal');
-      setTimeout(() => document.getElementById('habitInput').focus(), 0);
+      closeModal("categoryModal");
+      openModal("habitModal");
+      setTimeout(() => document.getElementById("habitInput").focus(), 0);
     });
 
-    document.getElementById('saveHabitBtn').addEventListener('click', () => {
-      const habit = document.getElementById('habitInput').value.trim();
+    document.getElementById("saveHabitBtn").addEventListener("click", () => {
+      const habit = document.getElementById("habitInput").value.trim();
       if (!habit) {
-        alert('습관을 입력해 주세요.');
+        alert("습관을 입력해 주세요.");
         return;
       }
-      closeModal('habitModal');
+      closeModal("habitModal");
       createHabit(state.tempCategory, habit);
     });
 
-    document.getElementById('categoryInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') document.getElementById('nextCategoryBtn').click();
-    });
-    document.getElementById('habitInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') document.getElementById('saveHabitBtn').click();
+    document.getElementById("categoryInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") document.getElementById("nextCategoryBtn").click();
     });
 
-    finalizePastWeeksAndArchive();
-    setScreen('home');
+    document.getElementById("habitInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") document.getElementById("saveHabitBtn").click();
+    });
+
+    document.getElementById("googleLoginBtn").addEventListener("click", handleGoogleLogin);
+    document.getElementById("googleLoginBtn2").addEventListener("click", handleGoogleLogin);
+    document.getElementById("logoutBtn").addEventListener("click", handleLogout);
+
+    initAuthFlow();
   </script>
-
-  <script type="module">
-  // Import the functions you need from the SDKs you need
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDhMTJUjOuukWxdcIhhf39z2iQnXnrDlnU",
-  authDomain: "habit-app-dbcf0.firebaseapp.com",
-  projectId: "habit-app-dbcf0",
-  storageBucket: "habit-app-dbcf0.firebasestorage.app",
-  messagingSenderId: "936208798483",
-  appId: "1:936208798483:web:695852b09848c5eb0440e6"
-};
-
-const app = initializeApp(firebaseConfig);
-
-const db = getFirestore(app);
-const auth = getAuth(app);
-
-await signInAnonymously(auth);
-
-window.db = db;
-    
-</script>
-  
 </body>
 </html>
-
-
