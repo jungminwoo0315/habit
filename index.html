@@ -314,6 +314,9 @@
       border-radius: 14px;
       font-size: 14px;
       display: none;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.5;
     }
     .status-bar.show { display: block; }
     .status-info {
@@ -330,11 +333,6 @@
       text-align: center;
       padding: 72px 20px;
       color: #6b7280;
-    }
-    .disabled-overlay {
-      opacity: 0.5;
-      pointer-events: none;
-      user-select: none;
     }
     @media (max-width: 900px) {
       .home-grid { grid-template-columns: 1fr; }
@@ -612,7 +610,7 @@
       state.saveTimer = setTimeout(() => {
         saveCloudState().catch(err => {
           console.error(err);
-          showStatus("클라우드 저장 중 오류가 발생했습니다.", "error");
+          showStatus("클라우드 저장 중 오류가 발생했습니다.\n" + (err.code || "") + "\n" + (err.message || ""), "error");
         });
       }, 300);
     }
@@ -966,23 +964,39 @@
       hideStatus();
       try {
         const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
         if (isMobile) {
           await signInWithRedirect(auth, provider);
           return;
         }
+
         await signInWithPopup(auth, provider);
       } catch (err) {
-        console.error(err);
-        if (err && (err.code === "auth/popup-blocked" || err.code === "auth/cancelled-popup-request")) {
+        console.error("Google login error:", err);
+
+        if (err && (
+          err.code === "auth/popup-blocked" ||
+          err.code === "auth/cancelled-popup-request"
+        )) {
           try {
             await signInWithRedirect(auth, provider);
             return;
           } catch (redirectErr) {
-            console.error(redirectErr);
-            showStatus("Google 로그인에 실패했습니다. Firebase Authorized domain 설정도 확인해 보세요.", "error");
+            console.error("Redirect login error:", redirectErr);
+            showStatus(
+              "Google 로그인 실패\n" +
+              "code: " + (redirectErr.code || "unknown-error") + "\n" +
+              "message: " + (redirectErr.message || ""),
+              "error"
+            );
           }
         } else {
-          showStatus("Google 로그인에 실패했습니다. Firebase Authorized domain 설정도 확인해 보세요.", "error");
+          showStatus(
+            "Google 로그인 실패\n" +
+            "code: " + (err.code || "unknown-error") + "\n" +
+            "message: " + (err.message || ""),
+            "error"
+          );
         }
       }
     }
@@ -1000,7 +1014,12 @@
         hideStatus();
       } catch (err) {
         console.error(err);
-        showStatus("로그아웃 중 오류가 발생했습니다.", "error");
+        showStatus(
+          "로그아웃 중 오류가 발생했습니다.\n" +
+          "code: " + (err.code || "") + "\n" +
+          "message: " + (err.message || ""),
+          "error"
+        );
       }
     }
 
@@ -1010,7 +1029,16 @@
       showAppShell(false);
 
       try {
-        await getRedirectResult(auth).catch(() => null);
+        await getRedirectResult(auth).catch((err) => {
+          console.error("getRedirectResult error:", err);
+          showStatus(
+            "Redirect 결과 처리 실패\n" +
+            "code: " + (err.code || "unknown-error") + "\n" +
+            "message: " + (err.message || ""),
+            "error"
+          );
+          return null;
+        });
       } catch (err) {
         console.error(err);
       }
@@ -1041,7 +1069,12 @@
           hideStatus();
         } catch (err) {
           console.error(err);
-          showStatus("데이터를 불러오는 중 오류가 발생했습니다.", "error");
+          showStatus(
+            "데이터를 불러오는 중 오류가 발생했습니다.\n" +
+            "code: " + (err.code || "unknown-error") + "\n" +
+            "message: " + (err.message || ""),
+            "error"
+          );
           setLoading(false);
         }
       });
