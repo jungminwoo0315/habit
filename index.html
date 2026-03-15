@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>습관 앱</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, "Noto Sans KR", sans-serif;
+      background: #f3f4f6;
+      color: #111827;
+    }
+    .app {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .title h1 {
+      margin: 0;
+      font-size: 32px;
+    }
+    .title p {
+      margin: 8px 0 0;
+      color: #6b7280;
+    }
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button {
+      border: none;
+      cursor: pointer;
+      border-radius: 12px;
+      font-size: 14px;
+    }
+    .btn {
+      padding: 12px 18px;
+      background: white;
+      border: 1px solid #d1d5db;
+    }
+    .btn:hover { background: #f9fafb; }
+    .home-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(280px, 1fr));
+      gap: 24px;
+    }
+    .big-card {
+      min-height: 240px;
+      padding: 32px;
+      border-radius: 28px;
+      color: white;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      text-align: left;
+    }
+    .big-card h2 {
+      font-size: 32px;
+      margin: 0 0 16px;
+    }
+    .big-card p {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.6;
+      opacity: 0.95;
+    }
+    .create-card { background: #1d4ed8; }
+    .manage-card { background: #111827; }
+    .panel {
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      padding: 20px;
+    }
+    .week-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .week-nav h2 {
+      margin: 0;
+      font-size: 26px;
+    }
+    .week-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      background: white;
+      border: 1px solid #d1d5db;
+      font-size: 18px;
+    }
+    .week-label {
+      min-width: 260px;
+      text-align: center;
+      font-weight: 700;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid #374151;
+      border-radius: 16px;
+      background: white;
+    }
+    .habit-table {
+      min-width: 1100px;
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .habit-table th,
+    .habit-table td {
+      border: 1px solid #4b5563;
+      text-align: center;
+      padding: 0;
+    }
+    .habit-table th {
+      background: #e5e7eb;
+      padding: 12px 10px;
+      font-size: 14px;
+    }
+    .cat-cell {
+      width: 120px;
+      background: #f3f4f6;
+      font-weight: 700;
+      padding: 12px 10px !important;
+    }
+    .habit-cell {
+      width: 180px;
+      background: #f9fafb;
+      padding: 12px 10px !important;
+      text-align: left !important;
+    }
+    .summary-cell {
+      width: 120px;
+      padding: 10px !important;
+      background: #fff;
+    }
+    .day-btn {
+      width: 100%;
+      min-width: 85px;
+      height: 44px;
+      border-radius: 0;
+      color: white;
+      font-weight: 700;
+    }
+    .day-empty { background: #cbd5e1; color: #111827; }
+    .day-success { background: #0b61a4; }
+    .day-fail { background: #dc2626; }
+    .day-btn:disabled {
+      opacity: 0.9;
+      cursor: not-allowed;
+    }
+    .badge {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .pass { background: #2563eb; }
+    .fail { background: #dc2626; }
+    .progress { background: #6b7280; }
+    .small-text {
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 56px 20px;
+      color: #6b7280;
+      border: 1px dashed #d1d5db;
+      border-radius: 18px;
+    }
+    .archive-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .archive-card {
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      border-radius: 18px;
+      padding: 18px;
+    }
+    .archive-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 10px;
+    }
+    .archive-category {
+      display: inline-block;
+      background: #111827;
+      color: white;
+      font-size: 12px;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-weight: 700;
+    }
+    .archive-card h3 {
+      margin: 0 0 12px;
+      font-size: 20px;
+    }
+    .archive-card p {
+      margin: 6px 0;
+      color: #4b5563;
+      line-height: 1.5;
+    }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+      z-index: 1000;
+    }
+    .modal-backdrop.show { display: flex; }
+    .modal {
+      width: 100%;
+      max-width: 480px;
+      background: white;
+      border-radius: 22px;
+      padding: 24px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.2);
+    }
+    .modal h3 {
+      margin: 0 0 16px;
+      font-size: 24px;
+    }
+    .modal input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      font-size: 16px;
+      margin-bottom: 18px;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    .btn-primary {
+      background: #2563eb;
+      color: white;
+    }
+    .btn-primary:hover { background: #1d4ed8; }
+    @media (max-width: 900px) {
+      .home-grid { grid-template-columns: 1fr; }
+      .big-card h2 { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="title">
+        <h1>습관 앱</h1>
+        <p>주간 합격/불합격 기준으로 습관을 관리하는 보드</p>
+      </div>
+      <div class="top-actions">
+        <button class="btn" id="archiveBtn">아카이브 습관 보기</button>
+        <button class="btn" id="homeBtn">홈</button>
+      </div>
+    </div>
+
+    <div id="screen-home">
+      <div class="home-grid">
+        <button class="big-card create-card" id="createHabitBtn">
+          <h2>습관 생성하기</h2>
+          <p>카테고리와 구체적인 습관을 순서대로 입력합니다.</p>
+        </button>
+        <button class="big-card manage-card" id="manageHabitBtn">
+          <h2>습관 관리하기</h2>
+          <p>엑셀처럼 주간 단위로 성공/실패를 기록합니다.</p>
+        </button>
+      </div>
+    </div>
+
+    <div id="screen-manage" style="display:none;">
+      <div class="panel">
+        <div class="week-nav">
+          <h2>주간 습관 관리</h2>
+          <div class="week-controls">
+            <button class="icon-btn" id="prevWeekBtn">←</button>
+            <div class="week-label" id="weekLabel"></div>
+            <button class="icon-btn" id="nextWeekBtn">→</button>
+          </div>
+        </div>
+        <div id="manageContent"></div>
+      </div>
+    </div>
+
+    <div id="screen-archive" style="display:none;">
+      <div class="panel">
+        <h2 style="margin-top:0; font-size:26px;">아카이브 습관</h2>
+        <div id="archiveContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="categoryModal">
+    <div class="modal">
+      <h3>카테고리를 입력하세요</h3>
+      <input id="categoryInput" placeholder="예: 신앙, 재정, 자기계발, 마이너스습관" />
+      <div class="modal-actions">
+        <button class="btn" id="cancelCategoryBtn">취소</button>
+        <button class="btn btn-primary" id="nextCategoryBtn">다음</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="habitModal">
+    <div class="modal">
+      <h3>습관을 구체적으로 입력하세요</h3>
+      <input id="habitInput" placeholder="예: 성경 읽기, 30분 걷기, 술마시기, 충동구매" />
+      <div class="modal-actions">
+        <button class="btn" id="cancelHabitBtn">취소</button>
+        <button class="btn btn-primary" id="saveHabitBtn">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'habit-app-html-v1';
+
+    const state = {
+      screen: 'home',
+      viewWeekStart: startOfWeek(new Date()),
+      tempCategory: '',
+      data: loadState()
+    };
+
+    function defaultState() {
+      return { habits: [], archivedHabits: [] };
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return defaultState();
+        const parsed = JSON.parse(raw);
+        return {
+          habits: parsed.habits || [],
+          archivedHabits: parsed.archivedHabits || []
+        };
+      } catch (e) {
+        return defaultState();
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+    }
+
+    function startOfWeek(date) {
+      const d = new Date(date);
+      d.setHours(0, 0, 0, 0);
+      const day = d.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      d.setDate(d.getDate() + diff);
+      return d;
+    }
+
+    function addDays(date, days) {
+      const d = new Date(date);
+      d.setDate(d.getDate() + days);
+      return d;
+    }
+
+    function addWeeks(date, weeks) {
+      return addDays(date, weeks * 7);
+    }
+
+    function ymd(date) {
+      return new Date(date).toISOString().slice(0, 10);
+    }
+
+    function weekKeyFromDate(date) {
+      const weekStart = startOfWeek(date);
+      const temp = new Date(weekStart);
+      temp.setHours(0, 0, 0, 0);
+      temp.setDate(temp.getDate() + 3);
+      const firstThursday = new Date(temp.getFullYear(), 0, 4);
+      const firstWeekStart = startOfWeek(firstThursday);
+      const diffDays = Math.round((temp - firstWeekStart) / 86400000);
+      const weekNo = 1 + Math.floor(diffDays / 7);
+      return temp.getFullYear() + '-W' + String(weekNo).padStart(2, '0');
+    }
+
+    function createEmptyWeekMap(weekStart) {
+      const map = {};
+      for (let i = 0; i < 7; i++) {
+        const d = addDays(weekStart, i);
+        map[ymd(d)] = null;
+      }
+      return map;
+    }
+
+    function ensureWeekStatuses(habit, weekStart, today) {
+      const wk = weekKeyFromDate(weekStart);
+      const currentWeekStart = startOfWeek(today);
+      const isPastWeek = weekStart < currentWeekStart;
+      const weeks = JSON.parse(JSON.stringify(habit.weeks || {}));
+      if (!weeks[wk]) weeks[wk] = { statuses: createEmptyWeekMap(weekStart) };
+      if (!weeks[wk].statuses) weeks[wk].statuses = createEmptyWeekMap(weekStart);
+
+      for (let i = 0; i < 7; i++) {
+        const d = ymd(addDays(weekStart, i));
+        if (!(d in weeks[wk].statuses)) weeks[wk].statuses[d] = null;
+      }
+
+      if (isPastWeek) {
+        Object.keys(weeks[wk].statuses).forEach(key => {
+          if (weeks[wk].statuses[key] === null) weeks[wk].statuses[key] = 'fail';
+        });
+      }
+
+      return { ...habit, weeks };
+    }
+
+    function evaluateWeek(habit, weekStart, today = new Date()) {
+      const wk = weekKeyFromDate(weekStart);
+      const statuses = (habit.weeks && habit.weeks[wk] && habit.weeks[wk].statuses) || createEmptyWeekMap(weekStart);
+      const values = Object.values(statuses);
+      const successCount = values.filter(v => v === 'success').length;
+      const failCount = values.filter(v => v === 'fail').length;
+      const pendingCount = values.filter(v => v === null).length;
+      const isMinus = (habit.category || '').trim() === '마이너스습관';
+
+      if (pendingCount > 0 && weekStart.getTime() === startOfWeek(today).getTime()) {
+        return { label: '진행중', successCount, failCount, passed: null };
+      }
+
+      const passed = isMinus ? failCount === 0 : successCount >= 5;
+      return {
+        label: passed ? '합격' : '불합격',
+        successCount,
+        failCount,
+        passed
+      };
+    }
+
+    function computeHabitStats(habit, today = new Date()) {
+      const createdWeekStart = startOfWeek(new Date(habit.createdAt));
+      const currentWeekStart = startOfWeek(today);
+      let consecutivePasses = 0;
+      let totalSuccessDays = 0;
+      let streakStart = null;
+      let streakEnd = null;
+
+      for (let ws = new Date(createdWeekStart); ws <= currentWeekStart; ws = addWeeks(ws, 1)) {
+        habit = ensureWeekStatuses(habit, ws, today);
+        const result = evaluateWeek(habit, ws, today);
+        totalSuccessDays += result.successCount;
+
+        if (result.passed === true) {
+          consecutivePasses += 1;
+          if (!streakStart) streakStart = new Date(ws);
+          streakEnd = addDays(new Date(ws), 6);
+        } else if (result.passed === false) {
+          consecutivePasses = 0;
+          streakStart = null;
+          streakEnd = null;
+        }
+      }
+
+      const shouldArchive = consecutivePasses >= 10 && totalSuccessDays >= 60;
+      return {
+        consecutivePasses,
+        totalSuccessDays,
+        shouldArchive,
+        archiveInfo: shouldArchive ? {
+          archivedAt: new Date().toISOString(),
+          learnedPeriod: streakStart && streakEnd
+            ? `${streakStart.getFullYear()}.${streakStart.getMonth()+1}.${streakStart.getDate()} ~ ${streakEnd.getFullYear()}.${streakEnd.getMonth()+1}.${streakEnd.getDate()}`
+            : '',
+          learnedDays: streakStart && streakEnd
+            ? Math.floor((streakEnd - streakStart) / 86400000) + 1
+            : totalSuccessDays
+        } : null
+      };
+    }
+
+    function finalizePastWeeksAndArchive() {
+      const today = new Date();
+      const currentWeekStart = startOfWeek(today);
+      const active = [];
+      const archived = state.data.archivedHabits.slice();
+
+      state.data.habits.forEach(originalHabit => {
+        let habit = { ...originalHabit, weeks: JSON.parse(JSON.stringify(originalHabit.weeks || {})) };
+        const createdWeekStart = startOfWeek(new Date(habit.createdAt));
+
+        for (let ws = new Date(createdWeekStart); ws < currentWeekStart; ws = addWeeks(ws, 1)) {
+          habit = ensureWeekStatuses(habit, ws, today);
+        }
+
+        const stats = computeHabitStats(habit, today);
+        if (stats.shouldArchive) {
+          archived.push({
+            ...habit,
+            archiveInfo: stats.archiveInfo
+          });
+        } else {
+          active.push(habit);
+        }
+      });
+
+      state.data.habits = active;
+      state.data.archivedHabits = dedupeArchived(archived);
+      saveState();
+    }
+
+    function dedupeArchived(arr) {
+      const map = new Map();
+      arr.forEach(item => {
+        if (!map.has(item.id)) map.set(item.id, item);
+      });
+      return Array.from(map.values());
+    }
+
+    function formatWeekRange(weekStart) {
+      const end = addDays(weekStart, 6);
+      return `${weekStart.getFullYear()}년 ${weekStart.getMonth()+1}월 ${weekStart.getDate()}일 ~ ${end.getMonth()+1}월 ${end.getDate()}일`;
+    }
+
+    function formatDateLabel(date) {
+      return `${date.getMonth()+1}월 ${date.getDate()}일`;
+    }
+
+    function setScreen(screen) {
+      state.screen = screen;
+      document.getElementById('screen-home').style.display = screen === 'home' ? '' : 'none';
+      document.getElementById('screen-manage').style.display = screen === 'manage' ? '' : 'none';
+      document.getElementById('screen-archive').style.display = screen === 'archive' ? '' : 'none';
+      render();
+    }
+
+    function openModal(id) {
+      document.getElementById(id).classList.add('show');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('show');
+    }
+
+    function renderManage() {
+      const manageContent = document.getElementById('manageContent');
+      const weekLabel = document.getElementById('weekLabel');
+      const nextWeekBtn = document.getElementById('nextWeekBtn');
+      const currentWeekStart = startOfWeek(new Date());
+      const viewWeekStart = state.viewWeekStart;
+      const isCurrentWeek = viewWeekStart.getTime() === currentWeekStart.getTime();
+
+      weekLabel.textContent = formatWeekRange(viewWeekStart);
+      nextWeekBtn.disabled = isCurrentWeek;
+
+      if (state.data.habits.length === 0) {
+        manageContent.innerHTML = '<div class="empty-state">아직 생성된 습관이 없습니다. 홈에서 먼저 습관을 만들어 주세요.</div>';
+        return;
+      }
+
+      const visibleDays = Array.from({ length: 7 }, (_, i) => addDays(viewWeekStart, i));
+
+      let html = '<div class="table-wrap"><table class="habit-table"><thead><tr>' +
+        '<th>카테고리</th>' +
+        '<th>습관</th>' +
+        visibleDays.map(day => `<th>${formatDateLabel(day)}</th>`).join('') +
+        '<th>총평</th>' +
+        '</tr></thead><tbody>';
+
+      state.data.habits.forEach(habit => {
+        const ensured = ensureWeekStatuses(habit, viewWeekStart, new Date());
+        const wk = weekKeyFromDate(viewWeekStart);
+        const statuses = ensured.weeks[wk].statuses;
+        const evalResult = evaluateWeek(ensured, viewWeekStart);
+        const stats = computeHabitStats(ensured);
+        const isPastWeek = viewWeekStart < currentWeekStart;
+
+        html += '<tr>';
+        html += `<td class="cat-cell">${escapeHtml(habit.category)}</td>`;
+        html += `<td class="habit-cell">${escapeHtml(habit.detail)}</td>`;
+
+        visibleDays.forEach(day => {
+          const dateStr = ymd(day);
+          const value = statuses[dateStr];
+          const cls = value === 'success' ? 'day-success' : value === 'fail' ? 'day-fail' : 'day-empty';
+          const text = value === 'success' ? '성공' : value === 'fail' ? '실패' : '미입력';
+          const disabled = isPastWeek ? 'disabled' : '';
+          html += `<td><button class="day-btn ${cls}" data-habit-id="${habit.id}" data-date="${dateStr}" ${disabled}>${text}</button></td>`;
+        });
+
+        const badgeClass = evalResult.label === '합격' ? 'pass' : evalResult.label === '불합격' ? 'fail' : 'progress';
+        html += `<td class="summary-cell"><span class="badge ${badgeClass}">${evalResult.label}</span><div class="small-text">연속 ${stats.consecutivePasses}주</div></td>`;
+        html += '</tr>';
+      });
+
+      html += '</tbody></table></div>';
+      manageContent.innerHTML = html;
+
+      manageContent.querySelectorAll('.day-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const habitId = btn.dataset.habitId;
+          const dateStr = btn.dataset.date;
+          toggleDayStatus(habitId, dateStr);
+        });
+      });
+    }
+
+    function renderArchive() {
+      const el = document.getElementById('archiveContent');
+      if (state.data.archivedHabits.length === 0) {
+        el.innerHTML = '<div class="empty-state">아직 아카이브된 습관이 없습니다.</div>';
+        return;
+      }
+
+      let html = '<div class="archive-grid">';
+      state.data.archivedHabits.forEach(habit => {
+        html += `
+          <div class="archive-card">
+            <div class="archive-head">
+              <span class="archive-category">${escapeHtml(habit.category)}</span>
+              <span class="small-text">아카이브 완료</span>
+            </div>
+            <h3>${escapeHtml(habit.detail)}</h3>
+            <p><strong>익힌 기간:</strong> ${escapeHtml(habit.archiveInfo?.learnedPeriod || '기록 없음')}</p>
+            <p><strong>행동으로 익힌 일수:</strong> ${habit.archiveInfo?.learnedDays || 0}일</p>
+          </div>
+        `;
+      });
+      html += '</div>';
+      el.innerHTML = html;
+    }
+
+    function render() {
+      if (state.screen === 'manage') renderManage();
+      if (state.screen === 'archive') renderArchive();
+    }
+
+    function toggleDayStatus(habitId, dateStr) {
+      const today = new Date();
+      const currentWeekStart = startOfWeek(today);
+      if (state.viewWeekStart < currentWeekStart) return;
+
+      const active = [];
+      const archived = state.data.archivedHabits.slice();
+
+      state.data.habits.forEach(originalHabit => {
+        let habit = { ...originalHabit, weeks: JSON.parse(JSON.stringify(originalHabit.weeks || {})) };
+        if (habit.id === habitId) {
+          habit = ensureWeekStatuses(habit, state.viewWeekStart, today);
+          const wk = weekKeyFromDate(state.viewWeekStart);
+          const current = habit.weeks[wk].statuses[dateStr];
+          const next = current === 'success' ? 'fail' : current === 'fail' ? null : 'success';
+          habit.weeks[wk].statuses[dateStr] = next;
+        }
+
+        const stats = computeHabitStats(habit, today);
+        if (stats.shouldArchive) {
+          archived.push({ ...habit, archiveInfo: stats.archiveInfo });
+        } else {
+          active.push(habit);
+        }
+      });
+
+      state.data.habits = active;
+      state.data.archivedHabits = dedupeArchived(archived);
+      saveState();
+      render();
+    }
+
+    function createHabit(category, detail) {
+      state.data.habits.push({
+        id: crypto.randomUUID ? crypto.randomUUID() : 'habit-' + Date.now() + '-' + Math.random().toString(16).slice(2),
+        category,
+        detail,
+        createdAt: new Date().toISOString(),
+        weeks: {}
+      });
+      saveState();
+      finalizePastWeeksAndArchive();
+      setScreen('manage');
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    document.getElementById('createHabitBtn').addEventListener('click', () => {
+      document.getElementById('categoryInput').value = '';
+      document.getElementById('habitInput').value = '';
+      state.tempCategory = '';
+      openModal('categoryModal');
+    });
+
+    document.getElementById('manageHabitBtn').addEventListener('click', () => setScreen('manage'));
+    document.getElementById('homeBtn').addEventListener('click', () => setScreen('home'));
+    document.getElementById('archiveBtn').addEventListener('click', () => setScreen('archive'));
+    document.getElementById('prevWeekBtn').addEventListener('click', () => {
+      state.viewWeekStart = addWeeks(state.viewWeekStart, -1);
+      render();
+    });
+    document.getElementById('nextWeekBtn').addEventListener('click', () => {
+      const currentWeekStart = startOfWeek(new Date());
+      const next = addWeeks(state.viewWeekStart, 1);
+      if (next <= currentWeekStart) {
+        state.viewWeekStart = next;
+        render();
+      }
+    });
+
+    document.getElementById('cancelCategoryBtn').addEventListener('click', () => closeModal('categoryModal'));
+    document.getElementById('cancelHabitBtn').addEventListener('click', () => closeModal('habitModal'));
+
+    document.getElementById('nextCategoryBtn').addEventListener('click', () => {
+      const value = document.getElementById('categoryInput').value.trim();
+      if (!value) {
+        alert('카테고리를 입력해 주세요.');
+        return;
+      }
+      state.tempCategory = value;
+      closeModal('categoryModal');
+      openModal('habitModal');
+      setTimeout(() => document.getElementById('habitInput').focus(), 0);
+    });
+
+    document.getElementById('saveHabitBtn').addEventListener('click', () => {
+      const habit = document.getElementById('habitInput').value.trim();
+      if (!habit) {
+        alert('습관을 입력해 주세요.');
+        return;
+      }
+      closeModal('habitModal');
+      createHabit(state.tempCategory, habit);
+    });
+
+    document.getElementById('categoryInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('nextCategoryBtn').click();
+    });
+    document.getElementById('habitInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('saveHabitBtn').click();
+    });
+
+    finalizePastWeeksAndArchive();
+    setScreen('home');
+  </script>
+</body>
+</html>
