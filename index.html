@@ -334,12 +334,48 @@
       padding: 72px 20px;
       color: #6b7280;
     }
+
+    .google-btn-wrap {
+      display: flex;
+      justify-content: center;
+      margin-top: 16px;
+    }
+
+    .google-custom-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-width: 220px;
+      min-height: 48px;
+      padding: 12px 18px;
+      background: white;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #111827;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    }
+    .google-custom-btn:hover {
+      background: #f9fafb;
+    }
+    .google-logo {
+      width: 18px;
+      height: 18px;
+      display: inline-block;
+      background: no-repeat center/contain url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><path fill='%23FFC107' d='M43.611 20.083H42V20H24v8h11.303C33.654 32.657 29.239 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.27 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z'/><path fill='%23FF3D00' d='M6.306 14.691l6.571 4.819C14.655 16.108 18.961 13 24 13c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.27 4 24 4c-7.682 0-14.347 4.337-17.694 10.691z'/><path fill='%234CAF50' d='M24 44c5.167 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.143 35.091 26.715 36 24 36c-5.218 0-9.621-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z'/><path fill='%231976D2' d='M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.084 5.571.001-.001 6.19 5.238 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z'/></svg>");
+    }
+
     @media (max-width: 900px) {
       .home-grid { grid-template-columns: 1fr; }
       .big-card h2 { font-size: 28px; }
       .user-pill { max-width: 100%; }
     }
   </style>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
   <div class="app">
@@ -373,7 +409,15 @@
           습관 데이터가 구글 계정 기준으로 저장됩니다.<br />
           휴대폰과 PC에서 같은 계정으로 로그인하면 같은 데이터를 이어서 사용할 수 있어요.
         </p>
-        <button class="btn btn-primary" id="googleLoginBtn2">Google로 시작하기</button>
+
+        <div class="google-btn-wrap">
+          <button class="google-custom-btn" id="googleLoginBtn2" type="button">
+            <span class="google-logo"></span>
+            <span>Google로 시작하기</span>
+          </button>
+        </div>
+
+        <div id="googleOneTapMount" style="margin-top:16px;"></div>
       </div>
     </div>
 
@@ -441,10 +485,8 @@
     import {
       getAuth,
       GoogleAuthProvider,
+      signInWithCredential,
       onAuthStateChanged,
-      signInWithPopup,
-      signInWithRedirect,
-      getRedirectResult,
       signOut,
       setPersistence,
       browserLocalPersistence
@@ -466,10 +508,18 @@
       appId: "1:936208798483:web:695852b09848c5eb0440e6"
     };
 
+    /**
+     * 중요:
+     * 아래 client_id는 "Google Cloud Console > APIs & Services > Credentials"
+     * 에서 "Web application"용 OAuth Client ID 값을 넣어야 합니다.
+     *
+     * 지금은 예시 자리표시자이므로 반드시 바꿔 주세요.
+     */
+    const GOOGLE_WEB_CLIENT_ID = "PUT_YOUR_GOOGLE_WEB_CLIENT_ID_HERE.apps.googleusercontent.com";
+
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
-    const provider = new GoogleAuthProvider();
 
     const LOCAL_STORAGE_KEY = "habit-app-html-v1";
     const CLOUD_DOC_ID = "main";
@@ -482,7 +532,8 @@
       cloudReady: false,
       isSaving: false,
       saveTimer: null,
-      data: defaultState()
+      data: defaultState(),
+      gisReady: false
     };
 
     function defaultState() {
@@ -599,6 +650,7 @@
             displayName: state.currentUser.displayName || ""
           }
         }, { merge: true });
+
         saveLocalBackup();
       } finally {
         state.isSaving = false;
@@ -612,7 +664,12 @@
       state.saveTimer = setTimeout(() => {
         saveCloudState().catch(err => {
           console.error(err);
-          showStatus("클라우드 저장 중 오류가 발생했습니다.\n" + (err.code || "") + "\n" + (err.message || ""), "error");
+          showStatus(
+            "클라우드 저장 중 오류가 발생했습니다.\n" +
+            (err.code || "") + "\n" +
+            (err.message || ""),
+            "error"
+          );
         });
       }, 300);
     }
@@ -927,6 +984,7 @@
 
       state.data.habits.forEach(originalHabit => {
         let habit = { ...originalHabit, weeks: JSON.parse(JSON.stringify(originalHabit.weeks || {})) };
+
         if (habit.id === habitId) {
           habit = ensureWeekStatuses(habit, state.viewWeekStart, today);
           const wk = weekKeyFromDate(state.viewWeekStart);
@@ -962,59 +1020,19 @@
       setScreen("manage");
     }
 
-    function isInAppBrowser() {
-      const ua = navigator.userAgent || "";
-      return /KAKAOTALK|NAVER|Line|FBAN|FBAV|Instagram|InstagramLite|Messenger|wv/i.test(ua);
-    }
-
-    async function handleGoogleLogin() {
-      hideStatus();
-
-      if (isInAppBrowser()) {
-        showStatus(
-          "현재 카카오톡/네이버/인스타 같은 인앱브라우저일 수 있어요.\n" +
-          "로그인이 안 되면 우측 메뉴에서 'Chrome에서 열기' 또는 'Safari에서 열기'로 다시 시도해 보세요.",
-          "info"
-        );
-      }
-
+    async function handleGoogleCredentialResponse(response) {
       try {
-        await setPersistence(auth, browserLocalPersistence);
-      } catch (err) {
-        console.warn("Persistence setting failed:", err);
-      }
+        hideStatus();
 
-      try {
-        await signInWithPopup(auth, provider);
-        return;
-      } catch (err) {
-        console.error("Popup login error:", err);
-
-        const fallbackCodes = [
-          "auth/popup-blocked",
-          "auth/popup-closed-by-user",
-          "auth/cancelled-popup-request",
-          "auth/operation-not-supported-in-this-environment"
-        ];
-
-        if (fallbackCodes.includes(err.code)) {
-          try {
-            showStatus("팝업 로그인이 어려워서 redirect 방식으로 다시 시도합니다...", "info");
-            await signInWithRedirect(auth, provider);
-            return;
-          } catch (redirectErr) {
-            console.error("Redirect login error:", redirectErr);
-            showStatus(
-              "Google 로그인 실패\n" +
-              "popup code: " + (err.code || "unknown") + "\n" +
-              "redirect code: " + (redirectErr.code || "unknown-error") + "\n" +
-              "message: " + (redirectErr.message || ""),
-              "error"
-            );
-            return;
-          }
+        if (!response || !response.credential) {
+          showStatus("Google 자격 증명을 받지 못했습니다.", "error");
+          return;
         }
 
+        const credential = GoogleAuthProvider.credential(response.credential);
+        await signInWithCredential(auth, credential);
+      } catch (err) {
+        console.error("Firebase credential sign-in error:", err);
         showStatus(
           "Google 로그인 실패\n" +
           "code: " + (err.code || "unknown-error") + "\n" +
@@ -1024,9 +1042,100 @@
       }
     }
 
+    function waitForGoogleScript(timeout = 10000) {
+      return new Promise((resolve, reject) => {
+        const start = Date.now();
+
+        function check() {
+          if (window.google && google.accounts && google.accounts.id) {
+            resolve();
+            return;
+          }
+
+          if (Date.now() - start > timeout) {
+            reject(new Error("Google Identity Services 로딩 시간 초과"));
+            return;
+          }
+
+          setTimeout(check, 100);
+        }
+
+        check();
+      });
+    }
+
+    async function initGoogleIdentity() {
+      try {
+        await waitForGoogleScript();
+
+        if (!GOOGLE_WEB_CLIENT_ID || GOOGLE_WEB_CLIENT_ID.includes("PUT_YOUR_GOOGLE_WEB_CLIENT_ID_HERE")) {
+          showStatus(
+            "중요: 코드 안의 GOOGLE_WEB_CLIENT_ID를 실제 Web Client ID로 바꿔야 Google 로그인이 동작합니다.",
+            "error"
+          );
+          return;
+        }
+
+        google.accounts.id.initialize({
+          client_id: GOOGLE_WEB_CLIENT_ID,
+          callback: handleGoogleCredentialResponse,
+          auto_select: false,
+          cancel_on_tap_outside: true,
+          ux_mode: "popup"
+        });
+
+        const oneTapMount = document.getElementById("googleOneTapMount");
+        if (oneTapMount) {
+          oneTapMount.innerHTML = "";
+          google.accounts.id.renderButton(oneTapMount, {
+            type: "standard",
+            theme: "outline",
+            size: "large",
+            text: "signin_with",
+            shape: "rectangular",
+            width: 260
+          });
+        }
+
+        state.gisReady = true;
+      } catch (err) {
+        console.error(err);
+        showStatus(
+          "Google 로그인 스크립트를 불러오지 못했습니다.\n" +
+          (err.message || ""),
+          "error"
+        );
+      }
+    }
+
+    function handleGoogleLogin() {
+      hideStatus();
+
+      if (!state.gisReady || !window.google || !google.accounts || !google.accounts.id) {
+        showStatus("Google 로그인 준비가 아직 끝나지 않았습니다. 잠시 후 다시 눌러 주세요.", "error");
+        return;
+      }
+
+      try {
+        google.accounts.id.prompt();
+      } catch (err) {
+        console.error(err);
+        showStatus(
+          "Google 로그인 창을 띄우는 중 오류가 발생했습니다.\n" +
+          (err.message || ""),
+          "error"
+        );
+      }
+    }
+
     async function handleLogout() {
       try {
         await signOut(auth);
+
+        if (window.google && google.accounts && google.accounts.id) {
+          google.accounts.id.disableAutoSelect();
+        }
+
         state.currentUser = null;
         state.cloudReady = false;
         state.data = defaultState();
@@ -1054,23 +1163,10 @@
       try {
         await setPersistence(auth, browserLocalPersistence);
       } catch (err) {
-        console.warn("Initial persistence setting failed:", err);
+        console.warn("Persistence setting failed:", err);
       }
 
-      try {
-        await getRedirectResult(auth).catch((err) => {
-          console.error("getRedirectResult error:", err);
-          showStatus(
-            "Redirect 결과 처리 실패\n" +
-            "code: " + (err.code || "unknown-error") + "\n" +
-            "message: " + (err.message || ""),
-            "error"
-          );
-          return null;
-        });
-      } catch (err) {
-        console.error(err);
-      }
+      await initGoogleIdentity();
 
       onAuthStateChanged(auth, async (user) => {
         setLoading(true);
