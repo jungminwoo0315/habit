@@ -445,7 +445,9 @@
       signInWithPopup,
       signInWithRedirect,
       getRedirectResult,
-      signOut
+      signOut,
+      setPersistence,
+      browserLocalPersistence
     } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
     import {
       getFirestore,
@@ -455,15 +457,14 @@
       serverTimestamp
     } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyDHmTJUjOuukWxdcIhhf39z2iQnXnrDlnU",
-    authDomain: "habit-app-dbcf0.firebaseapp.com",
-    projectId: "habit-app-dbcf0",
-    storageBucket: "habit-app-dbcf0.firebasestorage.app",
-    messagingSenderId: "936208798483",
-    appId: "1:936208798483:web:695852b09848c5eb0440e6"
-  };
-
+    const firebaseConfig = {
+      apiKey: "AIzaSyDHmTJUjOuukWxdcIhhf39z2iQnXnrDlnU",
+      authDomain: "habit-app-dbcf0.firebaseapp.com",
+      projectId: "habit-app-dbcf0",
+      storageBucket: "habit-app-dbcf0.firebasestorage.app",
+      messagingSenderId: "936208798483",
+      appId: "1:936208798483:web:695852b09848c5eb0440e6"
+    };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -961,44 +962,65 @@
       setScreen("manage");
     }
 
+    function isInAppBrowser() {
+      const ua = navigator.userAgent || "";
+      return /KAKAOTALK|NAVER|Line|FBAN|FBAV|Instagram|InstagramLite|Messenger|wv/i.test(ua);
+    }
+
     async function handleGoogleLogin() {
       hideStatus();
+
+      if (isInAppBrowser()) {
+        showStatus(
+          "현재 카카오톡/네이버/인스타 같은 인앱브라우저일 수 있어요.\n" +
+          "로그인이 안 되면 우측 메뉴에서 'Chrome에서 열기' 또는 'Safari에서 열기'로 다시 시도해 보세요.",
+          "info"
+        );
+      }
+
       try {
-        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-        if (isMobile) {
-          await signInWithRedirect(auth, provider);
-          return;
-        }
-
-        await signInWithPopup(auth, provider);
+        await setPersistence(auth, browserLocalPersistence);
       } catch (err) {
-        console.error("Google login error:", err);
+        console.warn("Persistence setting failed:", err);
+      }
 
-        if (err && (
-          err.code === "auth/popup-blocked" ||
-          err.code === "auth/cancelled-popup-request"
-        )) {
+      try {
+        await signInWithPopup(auth, provider);
+        return;
+      } catch (err) {
+        console.error("Popup login error:", err);
+
+        const fallbackCodes = [
+          "auth/popup-blocked",
+          "auth/popup-closed-by-user",
+          "auth/cancelled-popup-request",
+          "auth/operation-not-supported-in-this-environment"
+        ];
+
+        if (fallbackCodes.includes(err.code)) {
           try {
+            showStatus("팝업 로그인이 어려워서 redirect 방식으로 다시 시도합니다...", "info");
             await signInWithRedirect(auth, provider);
             return;
           } catch (redirectErr) {
             console.error("Redirect login error:", redirectErr);
             showStatus(
               "Google 로그인 실패\n" +
-              "code: " + (redirectErr.code || "unknown-error") + "\n" +
+              "popup code: " + (err.code || "unknown") + "\n" +
+              "redirect code: " + (redirectErr.code || "unknown-error") + "\n" +
               "message: " + (redirectErr.message || ""),
               "error"
             );
+            return;
           }
-        } else {
-          showStatus(
-            "Google 로그인 실패\n" +
-            "code: " + (err.code || "unknown-error") + "\n" +
-            "message: " + (err.message || ""),
-            "error"
-          );
         }
+
+        showStatus(
+          "Google 로그인 실패\n" +
+          "code: " + (err.code || "unknown-error") + "\n" +
+          "message: " + (err.message || ""),
+          "error"
+        );
       }
     }
 
@@ -1028,6 +1050,12 @@
       setLoading(true);
       showAuthScreen(false);
       showAppShell(false);
+
+      try {
+        await setPersistence(auth, browserLocalPersistence);
+      } catch (err) {
+        console.warn("Initial persistence setting failed:", err);
+      }
 
       try {
         await getRedirectResult(auth).catch((err) => {
